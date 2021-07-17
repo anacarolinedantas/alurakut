@@ -160,6 +160,7 @@ AlurakutMenu.Wrapper = styled.header`
     } 
   }
 `;
+
 AlurakutMenu.Logo = styled.img`
   background-color: #ffffff;
   padding: 9px 14px;

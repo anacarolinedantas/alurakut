@@ -46,38 +46,7 @@ function ProfileRelationsBox(propriedades) {
 
 export default function Home() {
   const usuarioAleatorio = 'anacarolinedantas';
-  const [comunidades, setComunidades] = React.useState([
-    {
-      id: '12802378123789378912789789123896123', 
-      title: 'Eu odeio acordar cedo',
-      image: 'https://alurakut.vercel.app/capa-comunidade-01.jpg'
-    },
-    {
-      id: '165216421461245142125', 
-      title: 'Deus me disse: desce e arrasa!',
-      image: 'https://img10.orkut.br.com/community/15cf893f0e0d466dd42da2e37d04bde6.jpeg'
-    },
-    {
-      id: '5458613135848731564646', 
-      title: 'Eu tenho medo do PLANTÃO',
-      image: 'https://diariodonordeste.verdesmares.com.br/image/contentid/policy:1.3089845:1621954133/plantao.jpg?f=16x9&h=720&q=0.8&w=1280&$p$f$h$q$w=6826d41'
-    },
-    {
-      id: '5165465655216455424212', 
-      title: 'Eu nunca terminei uma borracha',
-      image: 'https://mercur.vteximg.com.br/arquivos/ids/159006-800-800/borracha_prima_2.jpg?v=636840182910830000'
-    },
-    {
-      id: '5165465655216455424212', 
-      title: 'Tocava campainha e corria',
-      image: 'https://img.freepik.com/fotos-gratis/closeup-dedo-da-mao-de-uma-mulher-pressionando-uma-campainha-ou-campainha-para-casa_49003-1003.jpg?size=626&ext=jpg'
-    },
-    {
-      id: '5165465655216455424212', 
-      title: 'Só mais 5 minutinhos',
-      image: 'https://pediatriadescomplicada.com.br/wp-content/uploads/2016/03/bebe-bocejando-1.jpg'
-    },
-]);
+  const [comunidades, setComunidades] = React.useState([]);
 
   const pessoasFavoritas = [
     'juunegreiros',
@@ -91,6 +60,7 @@ export default function Home() {
   const [seguidores, setSeguidores] = React.useState([]);
   // 0 - Pegar o array de dados do github 
   React.useEffect(function() {
+    //GET
     fetch('https://api.github.com/users/anacarolinedantas/followers')
     .then(function (respostaDoServidor) {
       return respostaDoServidor.json();
@@ -100,10 +70,28 @@ export default function Home() {
     })
   }, [])
 
-  console.log('seguidores antes do return', seguidores);
-
-  // 1 - Criar um box que vai ter um map, baseado nos items do array
-  // que pegamos do GitHub
+  // API GraphQL
+  fetch('https://graphql.datocms.com/', {
+    method: 'POST',
+    headers: {
+      'Authorization': '2426e562885201d3abe239c28553be',
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ "query": `query {
+      allCommunities {
+        id 
+        title
+        imageUrl
+        creatorSlug
+      }
+    }` })
+  })
+  .then(async (response) => {
+    const respostaCompleta = await response.json();
+    const comunidadesVindasDoDato = respostaCompleta.data.allCommunities;
+    setComunidades(comunidadesVindasDoDato)
+  })
 
   return (
     <>
@@ -131,12 +119,25 @@ export default function Home() {
                 console.log('Campo: ', dadosDoForm.get('image'));
 
                 const comunidade = {
-                  id: new Date().toISOString(),
                   title: dadosDoForm.get('title'),
-                  image: dadosDoForm.get('image'),
+                  imageUrl: dadosDoForm.get('image'),
+                  creatorSlug: usuarioAleatorio,
                 }
-                const comunidadesAtualizadas = [...comunidades, comunidade];
-                setComunidades(comunidadesAtualizadas)
+
+                fetch('/api/comunidades', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(comunidade)
+                })
+                .then(async (response) => {
+                  const dados = await response.json();
+                  console.log(dados.registroCriado);
+                  const comunidade = dados.registroCriado;
+                  const comunidadesAtualizadas = [...comunidades, comunidade];
+                  setComunidades(comunidadesAtualizadas)
+                })
             }}>
               <div>
                 <input
@@ -161,14 +162,14 @@ export default function Home() {
           </Box>
         </div>
         <div className="profileRelationsArea" style={{ gridArea: 'profileRelationsArea' }}>  
-          <ProfileRelationsBox title="Seguidores" items={seguidores} />      
+          {/* <ProfileRelationsBox title="Seguidores" items={seguidores} />       */}
           <ProfileRelationsBoxWrapper>
             <h2 className="smallTitle">
               Amigos ({pessoasFavoritas.length})
             </h2>
 
             <ul>
-              {pessoasFavoritas.map((itemAtual) => {
+              {pessoasFavoritas.slice(0,6).map((itemAtual) => {
                 return (
                   <li key={itemAtual}>
                     <a href={`/users/${itemAtual}`}>
@@ -185,11 +186,11 @@ export default function Home() {
               Comunidades ({comunidades.length})
             </h2>
             <ul>
-              {comunidades.map((itemAtual) => {
+              {comunidades.slice(0,6).map((itemAtual) => {
                 return (
                   <li key={itemAtual.id}>
-                    <a href={`/users/${itemAtual.title}`}>
-                      <img src={itemAtual.image} />
+                    <a href={`/communities/${itemAtual.id}`}>
+                      <img src={itemAtual.imageUrl} />
                       <span>{itemAtual.title}</span>
                     </a>
                   </li>
